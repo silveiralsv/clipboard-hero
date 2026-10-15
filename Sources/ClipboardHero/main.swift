@@ -4,9 +4,12 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let store = ClipboardStore()
+    private lazy var panel = SearchPanel(store: store)
+    private lazy var hotKey = HotKey { [weak self] in self?.panel.toggle() }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         store.start()
+        hotKey.register(.saved)
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Clipboard Hero")
@@ -31,9 +34,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        menu.addItem(withTitle: "Search History…", action: #selector(showPanel), keyEquivalent: "")
+        menu.addItem(.separator())
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
         menu.addItem(withTitle: "Version \(version)", action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Quit Clipboard Hero", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    }
+
+    @objc private func showPanel() {
+        panel.show()
     }
 
     @objc private func copyItem(_ sender: NSMenuItem) {

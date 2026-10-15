@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Testing
 @testable import ClipboardHero
 
@@ -77,4 +78,44 @@ import Testing
     store.copy(text)
     store.poll()
     #expect(store.items.map(\.id) == [text.id, image.id])
+}
+
+@MainActor
+@Test func searchFiltersCaseInsensitivelyAndKeepsSelectionInRange() {
+    let item = { (text: String?) in ClipItem(id: UUID(), kind: text == nil ? .image : .text, text: text, hash: UUID().uuidString, date: .now) }
+    let model = SearchModel()
+    model.reset(items: [item("Hello World"), item(nil), item("hello again"), item("bye")])
+
+    model.move(-1)
+    #expect(model.selected == 0)
+    model.move(10)
+    #expect(model.selected == 3)
+
+    model.query = "HELLO"
+    #expect(model.results.map(\.text) == ["Hello World", "hello again"])  // images don't match text queries
+    #expect(model.selected == 0)  // typing resets the selection
+    model.move(5)
+    #expect(model.selectedItem?.text == "hello again")
+
+    model.query = "nothing"
+    model.move(1)
+    #expect(model.selectedItem == nil)
+}
+
+@Test func shortcutRequiresAModifierAndShowsMacSymbols() throws {
+    func press(_ characters: String, _ keyCode: Int, _ flags: NSEvent.ModifierFlags) -> Shortcut? {
+        NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: 0, context: nil,
+                         characters: characters, charactersIgnoringModifiers: characters, isARepeat: false, keyCode: UInt16(keyCode))
+            .flatMap(Shortcut.init(event:))
+    }
+
+    #expect(Shortcut.default.description == "⌥Space")
+    #expect(press("v", 9, [.command, .shift])?.description == "⇧⌘V")
+    #expect(press(" ", 49, [.control, .option])?.description == "⌃⌥Space")
+    #expect(press("v", 9, []) == nil)
+    #expect(press("V", 9, [.shift]) == nil)
+
+    let shortcut = try #require(press("k", 40, [.command, .option]))
+    #expect(shortcut.carbonModifiers == UInt32(cmdKey | optionKey))
+    #expect(try JSONDecoder().decode(Shortcut.self, from: JSONEncoder().encode(shortcut)) == shortcut)
 }

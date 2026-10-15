@@ -48,3 +48,33 @@ import Testing
 
     #expect(texts(ClipboardStore(directory: dir, pasteboard: pasteboard)) == ["e", "d", "c"])  // reloaded from disk
 }
+
+@MainActor
+@Test func copyingAnItemBackMovesItToTheTopWithoutDuplicating() throws {
+    let dir = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: dir) }
+    let pasteboard = NSPasteboard.withUniqueName()
+    defer { pasteboard.releaseGlobally() }
+    let store = ClipboardStore(directory: dir, pasteboard: pasteboard)
+
+    let rep = try #require(NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: 2, pixelsHigh: 2, bitsPerSample: 8, samplesPerPixel: 4,
+        hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    pasteboard.clearContents()
+    pasteboard.setData(rep.tiffRepresentation, forType: .tiff)
+    store.poll()
+    pasteboard.clearContents()
+    pasteboard.setString("  first line\n\n  second   line  ", forType: .string)
+    store.poll()
+
+    let image = store.items[1]
+    store.copy(image)
+    store.poll()
+    #expect(store.items.count == 2 && store.items[0].id == image.id)
+
+    let text = store.items[1]
+    #expect(text.title == "first line second line")
+    store.copy(text)
+    store.poll()
+    #expect(store.items.map(\.id) == [text.id, image.id])
+}

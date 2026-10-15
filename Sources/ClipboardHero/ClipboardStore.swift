@@ -9,6 +9,13 @@ struct ClipItem: Codable, Identifiable {
     let text: String?  // set for .text items
     let hash: String   // SHA256 of the content; images live at images/<hash>.png
     var date: Date
+
+    /// One-line label for menus and lists.
+    var title: String {
+        guard let text else { return "Image" }
+        let line = text.prefix(200).split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return line.count > 50 ? line.prefix(50) + "…" : line
+    }
 }
 
 /// Watches the pasteboard and keeps the history (newest first) on disk.
@@ -22,6 +29,7 @@ final class ClipboardStore {
     private let imagesURL: URL
     private var changeCount: Int
     private var timer: Timer?
+    private let thumbnails = NSCache<NSString, NSImage>()
 
     // Markers that password managers and similar apps set so their data is not recorded (nspasteboard.org).
     private static let ignoredTypes: Set<NSPasteboard.PasteboardType> = [
@@ -64,6 +72,33 @@ final class ClipboardStore {
 
     func imageURL(for item: ClipItem) -> URL {
         imagesURL.appending(path: "\(item.hash).png")
+    }
+
+    /// Puts an item back on the pasteboard with the same bytes, so the watcher moves it to the top instead of duplicating it.
+    func copy(_ item: ClipItem) {
+        pasteboard.clearContents()
+        switch item.kind {
+        case .text: pasteboard.setString(item.text ?? "", forType: .string)
+        case .image: if let png = try? Data(contentsOf: imageURL(for: item)) { pasteboard.setData(png, forType: .png) }
+        }
+    }
+
+    /// Downsampled image for menus and lists. `size` is the longest side in points, rendered at 2x for Retina.
+    func thumbnail(for item: ClipItem, size: CGFloat) -> NSImage? {
+        let key = "\(item.hash)-\(size)" as NSString
+        if let cached = thumbnails.object(forKey: key) { return cached }
+
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: size * 2,
+        ] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(imageURL(for: item) as CFURL, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+
+        let image = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width / 2, height: cgImage.height / 2))
+        thumbnails.setObject(image, forKey: key)
+        return image
     }
 
     private func pngData() -> Data? {

@@ -1,7 +1,7 @@
 import AppKit
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let store = ClipboardStore()
 
@@ -10,10 +10,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Clipboard Hero")
+        statusItem.menu = NSMenu()
+        statusItem.menu?.delegate = self
+    }
 
-        let menu = NSMenu()
+    // Rebuilt every time the menu opens, so it always shows the latest items.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        let recent = store.items.prefix(5)
+        if recent.isEmpty {
+            menu.addItem(withTitle: "No items yet", action: nil, keyEquivalent: "")
+        }
+        for item in recent {
+            let menuItem = menu.addItem(withTitle: item.title, action: #selector(copyItem(_:)), keyEquivalent: "")
+            menuItem.representedObject = item
+            if item.kind == .image {
+                menuItem.image = store.thumbnail(for: item, size: 40)
+            }
+        }
+
+        menu.addItem(.separator())
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+        menu.addItem(withTitle: "Version \(version)", action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Quit Clipboard Hero", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        statusItem.menu = menu
+    }
+
+    @objc private func copyItem(_ sender: NSMenuItem) {
+        if let item = sender.representedObject as? ClipItem { store.copy(item) }
     }
 }
 

@@ -1,0 +1,37 @@
+# Clipboard Hero
+
+A lightweight, native clipboard history for macOS (Apple Silicon). It lives in the menu bar and opens a Spotlight-style search panel from a global hotkey.
+
+Built with Swift, AppKit and SwiftUI. No Electron, no web view: about 12 MB of memory and ~0% CPU when idle.
+
+## Features
+
+- [x] Menu bar icon, no Dock icon
+- [ ] Text and image clipboard history, newest first
+- [ ] Search panel opened with a global hotkey (default `⌥Space`), image previews
+- [ ] Menu bar menu: last 5 items, preferences, app version
+- [ ] Preferences: hotkey, history size, launch at login, clear history
+- [ ] Skips items that password managers mark as concealed
+
+## Install
+
+Download `ClipboardHero.zip` from [Releases](https://github.com/silveiralsv/clipboard-hero/releases), unzip it and move `ClipboardHero.app` to `/Applications`.
+
+The app is not notarized by Apple, so macOS blocks the first launch. Allow it once with:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/ClipboardHero.app
+```
+
+## Build from source
+
+Needs macOS 14+ on Apple Silicon and the Xcode Command Line Tools (`xcode-select --install`). Full Xcode is not required.
+
+```sh
+./scripts/bundle.sh
+open build/ClipboardHero.app
+```
+
+## License
+
+[MIT](LICENSE)

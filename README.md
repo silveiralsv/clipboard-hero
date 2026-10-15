@@ -10,7 +10,7 @@ Built with Swift, AppKit and SwiftUI. No Electron, no web view: about 12 MB of m
 - [x] Text and image clipboard history, newest first
 - [x] Search panel opened with a global hotkey (default `⌥Space`), image previews
 - [x] Menu bar menu: last 5 items, app version
-- [ ] Preferences: hotkey, history size, launch at login, clear history
+- [x] Settings: hotkey, history size, launch at login, clear history
 - [x] Skips items that password managers mark as concealed
 
 ## Install

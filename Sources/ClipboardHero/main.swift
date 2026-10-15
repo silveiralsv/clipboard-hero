@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -6,8 +7,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let store = ClipboardStore()
     private lazy var panel = SearchPanel(store: store)
     private lazy var hotKey = HotKey { [weak self] in self?.panel.toggle() }
+    private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let limit = UserDefaults.standard.object(forKey: "historyLimit") as? Int { store.limit = limit }
         store.start()
         hotKey.register(.saved)
 
@@ -35,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
         menu.addItem(withTitle: "Search History…", action: #selector(showPanel), keyEquivalent: "")
+        menu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         menu.addItem(.separator())
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
         menu.addItem(withTitle: "Version \(version)", action: nil, keyEquivalent: "")
@@ -43,6 +47,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func showPanel() {
         panel.show()
+    }
+
+    @objc private func showSettings() {
+        if settingsWindow == nil {
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(store: store, hotKey: hotKey)))
+            window.title = "Clipboard Hero Settings"
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            settingsWindow = window
+        }
+        // A menu bar app is never active on its own; activate it so the window comes to the front.
+        NSApp.activate()
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func copyItem(_ sender: NSMenuItem) {

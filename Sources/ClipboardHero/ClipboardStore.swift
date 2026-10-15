@@ -22,7 +22,7 @@ struct ClipItem: Codable, Identifiable {
 @MainActor
 final class ClipboardStore {
     private(set) var items: [ClipItem] = []
-    var limit = 500
+    var limit = 500 { didSet { trim(); save() } }
 
     private let pasteboard: NSPasteboard
     private let historyURL: URL
@@ -122,11 +122,24 @@ final class ClipboardStore {
             items.insert(item, at: 0)
         }
 
+        trim()
+        save()
+    }
+
+    func clear() {
+        for item in items where item.kind == .image {
+            try? FileManager.default.removeItem(at: imageURL(for: item))
+        }
+        items = []
+        thumbnails.removeAllObjects()
+        save()
+    }
+
+    private func trim() {
         for item in items.dropFirst(limit) where item.kind == .image {
             try? FileManager.default.removeItem(at: imageURL(for: item))
         }
         items = Array(items.prefix(limit))
-        save()
     }
 
     private func load() {

@@ -119,3 +119,33 @@ import Testing
     #expect(shortcut.carbonModifiers == UInt32(cmdKey | optionKey))
     #expect(try JSONDecoder().decode(Shortcut.self, from: JSONEncoder().encode(shortcut)) == shortcut)
 }
+
+@MainActor
+@Test func loweringTheLimitTrimsAndClearDeletesEverything() throws {
+    let dir = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: dir) }
+    let pasteboard = NSPasteboard.withUniqueName()
+    defer { pasteboard.releaseGlobally() }
+    let store = ClipboardStore(directory: dir, pasteboard: pasteboard)
+
+    let rep = try #require(NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: 2, pixelsHigh: 2, bitsPerSample: 8, samplesPerPixel: 4,
+        hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    pasteboard.clearContents()
+    pasteboard.setData(rep.tiffRepresentation, forType: .tiff)
+    store.poll()
+    let imageURL = store.imageURL(for: store.items[0])
+    for text in ["a", "b"] {
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        store.poll()
+    }
+
+    store.limit = 2
+    #expect(store.items.map(\.text) == ["b", "a"])
+    #expect(!FileManager.default.fileExists(atPath: imageURL.path))
+
+    store.clear()
+    #expect(store.items.isEmpty)
+    #expect(ClipboardStore(directory: dir, pasteboard: pasteboard).items.isEmpty)
+}

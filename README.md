@@ -7,11 +7,11 @@ Built with Swift, AppKit and SwiftUI. No Electron, no web view: about 12 MB of m
 ## Features
 
 - [x] Menu bar icon, no Dock icon
-- [ ] Text and image clipboard history, newest first
+- [x] Text and image clipboard history, newest first
 - [ ] Search panel opened with a global hotkey (default `⌥Space`), image previews
 - [ ] Menu bar menu: last 5 items, preferences, app version
 - [ ] Preferences: hotkey, history size, launch at login, clear history
-- [ ] Skips items that password managers mark as concealed
+- [x] Skips items that password managers mark as concealed
 
 ## Install
 
@@ -31,6 +31,10 @@ Needs macOS 14+ on Apple Silicon and the Xcode Command Line Tools (`xcode-select
 ./scripts/bundle.sh
 open build/ClipboardHero.app
 ```
+
+Run the tests with `./scripts/test.sh`.
+
+History is stored in `~/Library/Application Support/ClipboardHero/`.
 
 ## License
 

@@ -17,11 +17,13 @@ Built with Swift, AppKit and SwiftUI. No Electron, no web view: about 12 MB of m
 
 Download `ClipboardHero.zip` from [Releases](https://github.com/silveiralsv/clipboard-hero/releases), unzip it and move `ClipboardHero.app` to `/Applications`.
 
-The app is not notarized by Apple, so macOS blocks the first launch. Allow it once with:
+The app is not notarized by Apple, so macOS blocks the first launch with "Apple could not verify…". Click **Done** (not "Move to Trash"), then allow it once with:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/ClipboardHero.app
 ```
+
+Or, without the terminal: **System Settings › Privacy & Security**, scroll down and click **Open Anyway** next to ClipboardHero.
 
 ## Build from source
 
